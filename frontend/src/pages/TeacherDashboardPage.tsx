@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Calendar from "../components/Calendar/Calendar";
 import UserList from "../components/UserList/UserList";
 import ProfileSection from "../components/ProfileSection/ProfileSection";
@@ -29,29 +29,22 @@ const TeacherDashboardContainer = styled.div`
 `;
 
 const TeacherDashboardPage: React.FC = () => {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const [isProfileFilled, setIsProfileFilled] = useState(false);
   const navigate = useNavigate();
-  if (!user) {
-    login({
-      id: "2",
-      name: "Jane Smith",
-      role: "teacher",
-      status: "преподает",
-      age: 35,
-      experience: 10,
-      description: "опытный преподаватель",
-    });
-  }
-  const handleSaveProfile = (data: any) => {
-    console.log(data);
-    // Запрос на сохранение данных
-  };
+  useEffect(() => {
+    const storedIsProfileFilled = localStorage.getItem("isProfileFilled");
+    if (storedIsProfileFilled) {
+      setIsProfileFilled(storedIsProfileFilled === "true");
+    }
+  }, []);
+
   const handleNavigateToMain = () => {
     navigate("/");
   };
   const handleProfileFilled = (isFilled: boolean) => {
     setIsProfileFilled(isFilled);
+    localStorage.setItem("isProfileFilled", String(isFilled));
   };
   return (
     <TeacherDashboardContainer>
@@ -67,10 +60,9 @@ const TeacherDashboardPage: React.FC = () => {
           </Header>
           <ProfileSection
             user={user}
-            userRole="teacher"
-            onSave={handleSaveProfile}
             onProfileFilled={handleProfileFilled}
             isFilled={isProfileFilled}
+            userRole="teacher"
           />
           {isProfileFilled && (
             <>

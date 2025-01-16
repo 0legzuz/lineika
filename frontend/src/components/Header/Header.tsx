@@ -5,7 +5,7 @@ import Colors from "../../AppStyles"; // Подключаем ваши глоб�
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import AuthModal from "../AuthModal/AuthModal";
-
+import ActionButton from "../ui/ActionButton/ActionButton";
 const Header: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -14,7 +14,7 @@ const Header: React.FC = () => {
   };
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const openAuthModal = () => {
@@ -23,6 +23,10 @@ const Header: React.FC = () => {
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
+  };
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
   const handleTestClick = () => {
     navigate("/tests");
@@ -49,6 +53,7 @@ const Header: React.FC = () => {
         <Button onClick={user ? handleProfileClick : openAuthModal}>
           {user ? "Личный кабинет" : "Вход/Регистрация"}
         </Button>
+        {user && <Button onClick={handleLogout}>Выйти</Button>}
         {/* <PhoneButton>+7 (999) 999-99-99</PhoneButton> */}
         <BurgerButton onClick={handleBurgerClick} aria-label="Меню">
           <span />
@@ -65,6 +70,7 @@ const Header: React.FC = () => {
           <DropdownItem onClick={user ? handleProfileClick : openAuthModal}>
             {user ? "Личный кабинет" : "Вход/Регистрация"}
           </DropdownItem>
+          {user && <DropdownItem onClick={handleLogout}>Выйти</DropdownItem>}
         </DropdownMenu>
       )}
     </HeaderContainer>

@@ -24,12 +24,17 @@ const RadioGroup = styled.div`
   gap: 20px;
   margin-bottom: 20px;
 `;
+const ErrorText = styled.p`
+  color: red;
+`;
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistration, setIsRegistration] = useState(false);
   const [isTeacher, setIsTeacher] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { login: authLogin } = useAuth();
 
   const handleToggleRegistration = () => {
@@ -37,21 +42,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleAuth = async () => {
+    setIsLoading(true);
     const user = await api.login(login, password);
     if (user) {
       authLogin(user);
       onClose();
+    } else {
+      setErrorMessage("Неверный логин или пароль");
     }
+    setIsLoading(false);
   };
   const handleRegistration = async () => {
-    // Заглушка для регистрации, не забыть поменять на реальный запрос
-    authLogin({
-      id: crypto.randomUUID(),
-      name: login,
-      role: isTeacher ? "teacher" : "student",
-      status: "новый",
-    });
-    onClose();
+    setIsLoading(true);
+    const user = await api.register(
+      login,
+      password,
+      isTeacher ? "teacher" : "student"
+    );
+    if (user) {
+      authLogin(user);
+      onClose();
+    } else {
+      setErrorMessage("Ошибка при регистрации");
+    }
+    setIsLoading(false);
   };
 
   const handleToggleRole = () => {
@@ -62,6 +76,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent>
         <h2>{isRegistration ? "Регистрация" : "Вход"}</h2>
+        {errorMessage && <ErrorText>{errorMessage}</ErrorText>}
         <RadioGroup>
           <Slider
             labelOn="Регистрация"
@@ -101,15 +116,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         />
         {isRegistration ? (
           <ActionButton
-            textButton="Зарегистрироваться"
+            textButton={isLoading ? "Загрузка..." : "Зарегистрироваться"}
             onClick={handleRegistration}
             variant="orange"
+            disabled={isLoading}
           />
         ) : (
           <ActionButton
-            textButton="Войти"
+            textButton={isLoading ? "Загрузка..." : "Войти"}
             onClick={handleAuth}
             variant="orange"
+            disabled={isLoading}
           />
         )}
       </ModalContent>

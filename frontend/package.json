@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.7.9",
     "chart.js": "^4.4.4",
     "chartjs-plugin-datalabels": "^2.2.0",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-grid-layout": "^1.4.4",
+    "react-input-mask": "^2.0.4",
     "react-router-dom": "^6.21.1",
     "styled-components": "^6.1.6",
     "validator": "^13.11.0"
