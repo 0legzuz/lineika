@@ -1,6 +1,6 @@
 import React, { ChangeEventHandler } from "react";
 import InputMask from "react-input-mask";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import Colors from "../../../AppStyles";
 
 interface InputProps {
@@ -9,10 +9,15 @@ interface InputProps {
   type?: string;
   placeholder?: string;
   mask?: string;
+  fullWidth?: boolean; // новый пропс
 }
 
-// Общие стили для обоих вариантов ввода
-const commonStyles = `
+interface CommonProps {
+  fullWidth?: boolean;
+}
+
+// Общие стили для обоих вариантов ввода с учётом пропса fullWidth
+const commonStyles = css<CommonProps>`
   display: flex;
   gap: 6px;
   align-items: center;
@@ -23,7 +28,7 @@ const commonStyles = `
   font-family: "MontLight";
   height: 70px;
   width: 100%;
-  max-width: 345px;
+  max-width: ${({ fullWidth }) => (fullWidth ? "none" : "345px")};
   justify-content: center;
   border-radius: 8px;
   cursor: pointer;
@@ -41,13 +46,11 @@ const commonStyles = `
   }
 `;
 
-// Стили для обычного ввода
-const StyledInput = styled.input`
+const StyledInput = styled.input<CommonProps>`
   ${commonStyles}
 `;
 
-// Стили для ввода с маской
-const StyledMaskedInput = styled(InputMask)`
+const StyledMaskedInput = styled(InputMask)<CommonProps>`
   ${commonStyles}
 `;
 
@@ -57,9 +60,9 @@ const Input: React.FC<InputProps> = ({
   type = "text",
   placeholder,
   mask,
+  fullWidth,
   ...restProps
 }) => {
-  // Если задана маска, используем StyledMaskedInput, иначе стандартный input
   if (mask) {
     return (
       <StyledMaskedInput
@@ -67,6 +70,7 @@ const Input: React.FC<InputProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        fullWidth={fullWidth}
         {...restProps}
       />
     );
@@ -77,6 +81,7 @@ const Input: React.FC<InputProps> = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      fullWidth={fullWidth}
       {...restProps}
     />
   );

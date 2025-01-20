@@ -39,6 +39,11 @@ const Textarea = styled.textarea`
   box-shadow: 3px 3px 0px 0 rgba(0, 0, 0, 1);
   resize: none;
   transition: 0.3s ease;
+  width: 100%;
+  height: 200px;
+  font-family: "MontLight";
+  font-size: 20px;
+  font-weight: 300;
 
   &::placeholder {
     color: ${Colors.black};
@@ -121,12 +126,16 @@ const FileLabel = styled.label`
 const ImageContainer = styled.div`
   width: 200px;
   height: 200px;
-  border-radius: 8px;
-  background-color: #e0e0e0; /* Заполнитель при отсутствии изображения */
+  background-color: ${Colors.mint};
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-radius: 8px;
+  border: 2px solid ${Colors.black};
+  box-shadow: 3px 3px 0px 0 rgba(0, 0, 0, 1);
+  text-align: center;
+  margin-top: 20px;
 `;
 
 const Image = styled.img`
@@ -332,7 +341,9 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                   alt="Фото пользователя"
                   onError={() => setImageError(true)}
                 />
-              ) : null}
+              ) : (
+                <StyledLabel>Фото не добавлено</StyledLabel>
+              )}
             </ImageContainer>
             <h2>
               {surname && name && middlename
@@ -366,6 +377,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 value={surname}
                 onChange={(e) => setSurname(e.target.value)}
                 placeholder="Иванов"
+                fullWidth={true}
               />
               {errors.surname && <ErrorMessage>{errors.surname}</ErrorMessage>}
             </FieldGroup>
@@ -377,6 +389,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Иван"
+                fullWidth={true}
               />
               {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
             </FieldGroup>
@@ -388,6 +401,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 value={middlename}
                 onChange={(e) => setMiddlename(e.target.value)}
                 placeholder="Иванович"
+                fullWidth={true}
               />
               {errors.middlename && (
                 <ErrorMessage>{errors.middlename}</ErrorMessage>
@@ -402,6 +416,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 onChange={handleBirthdateChange}
                 placeholder="дд.мм.гггг"
                 mask="99.99.9999"
+                fullWidth={true}
               />
               {errors.birthdate && (
                 <ErrorMessage>{errors.birthdate}</ErrorMessage>
@@ -416,15 +431,13 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+7 (999) 999-99-99"
                 mask="+7 (999) 999-99-99"
+                fullWidth={true}
               />
               {errors.phone && <ErrorMessage>{errors.phone}</ErrorMessage>}
             </FieldGroup>
             <FieldGroup>
               <StyledLabel htmlFor="gender">Пол</StyledLabel>
-              <Select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-              >
+              <Select value={gender} onChange={(value) => setGender(value)}>
                 <option value="">Выберите пол</option>
                 <option value="male">Мужской</option>
                 <option value="female">Женский</option>
@@ -439,15 +452,13 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@mail.com"
+                fullWidth={true}
               />
               {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
             </FieldGroup>
             <FieldGroup>
               <StyledLabel htmlFor="timezone">Часовой пояс</StyledLabel>
-              <Select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-              >
+              <Select value={timezone} onChange={(value) => setTimezone(value)}>
                 <option value="">Выберите часовой пояс</option>
                 {timeZoneOptions.map((timeZone) => (
                   <option key={timeZone.value} value={timeZone.value}>
@@ -458,6 +469,31 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               {errors.timezone && (
                 <ErrorMessage>{errors.timezone}</ErrorMessage>
               )}
+            </FieldGroup>
+            <FieldGroup>
+              <StyledLabel htmlFor="photo">Фото</StyledLabel>
+              <FileLabel htmlFor="photo">
+                {photo ? "Изменить фото" : "Выберите файл"}
+              </FileLabel>
+              <HiddenInput
+                type="file"
+                id="photo"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handlePhotoChange}
+              />
+              {selectedFileName && <div>Прикреплён: {selectedFileName}</div>}
+              <ImageContainer>
+                {photo && !imageError ? (
+                  <Image
+                    src={photo}
+                    alt="Фото пользователя"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <StyledLabel>Фото не добавлено</StyledLabel>
+                )}
+              </ImageContainer>
             </FieldGroup>
             {userRole === "student" && (
               <FieldGroup>
@@ -492,29 +528,6 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 </FieldGroup>
               </>
             )}
-            <FieldGroup>
-              <StyledLabel htmlFor="photo">Фото</StyledLabel>
-              <FileLabel htmlFor="photo">
-                {photo ? "Изменить фото" : "Выберите файл"}
-              </FileLabel>
-              <HiddenInput
-                type="file"
-                id="photo"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={handlePhotoChange}
-              />
-              {selectedFileName && <div>Прикреплён: {selectedFileName}</div>}
-              <ImageContainer>
-                {photo && !imageError ? (
-                  <Image
-                    src={photo}
-                    alt="Фото пользователя"
-                    onError={() => setImageError(true)}
-                  />
-                ) : null}
-              </ImageContainer>
-            </FieldGroup>
           </FormGrid>
           <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
             <ActionButton

@@ -1,4 +1,3 @@
-// src/components/ui/Select/Select.tsx
 import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import Colors from "../../../AppStyles";
@@ -11,7 +10,7 @@ interface SelectProps {
 
 interface Option {
   value: string;
-  label: string;
+  label: React.ReactNode;
 }
 
 interface DropdownHeaderProps {
@@ -80,7 +79,6 @@ const DropdownWrapper = styled.div<DropdownWrapperProps>`
   z-index: 1000;
   overflow: hidden;
 
-  /* Плавное появление/скрытие */
   max-height: ${({ isOpen }) => (isOpen ? "200px" : "0")};
   opacity: ${({ isOpen }) => (isOpen ? "1" : "0")};
   transition:
@@ -94,19 +92,15 @@ const DropdownList = styled.ul`
   max-height: 200px;
   overflow-y: auto;
 
-  /* Firefox */
   scrollbar-width: thin;
   scrollbar-color: ${Colors.mint} ${Colors.beige};
 
-  /* WebKit-браузеры */
   &::-webkit-scrollbar {
     width: 12px;
   }
-
   &::-webkit-scrollbar-track {
     background: ${Colors.beige};
   }
-
   &::-webkit-scrollbar-thumb {
     background-color: ${Colors.mint};
     border-radius: 6px;
@@ -126,12 +120,13 @@ const Select: React.FC<SelectProps> = ({ value, onChange, children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const options: Option[] = React.Children.toArray(children)
-    .filter((child) => React.isValidElement(child) && child.type === "option")
-    .map((child) => {
-      const props = (child as React.ReactElement<any>).props;
+  const options: Option[] = (React.Children.map(children, (child) => {
+    if (React.isValidElement(child) && child.type === "option") {
+      const props = child.props;
       return { value: props.value, label: props.children };
-    });
+    }
+    return null;
+  }) || []).filter((opt): opt is Option => opt !== null);
 
   const toggleOpen = () => setIsOpen((prev) => !prev);
 
@@ -152,7 +147,11 @@ const Select: React.FC<SelectProps> = ({ value, onChange, children }) => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      
+    }
+      
   }, []);
 
   return (
