@@ -9,6 +9,9 @@ interface AddEventModalProps {
   onClose: () => void;
   date: Date;
   role: "teacher" | "student";
+  onLessonAdded: () => void;
+  teacherId?: string;
+  userId?: string; // Идентификатор ученика (для роли "student")
 }
 const Input = styled.input`
   padding: 8px;
@@ -41,11 +44,15 @@ const ModalContent = styled.div`
   background: white;
   border-radius: 8px;
 `;
+
 const AddEventModal: React.FC<AddEventModalProps> = ({
   isOpen,
   onClose,
   date,
   role,
+  onLessonAdded,
+  teacherId,
+  userId,
 }) => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -55,10 +62,14 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   const [students, setStudents] = useState<User[]>([]);
   const [studentId, setStudentId] = useState("");
 
+  // Состояния для списка преподавателей (для роли "student")
+  const [teachers, setTeachers] = useState<User[]>([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+
   useEffect(() => {
-    if (role === "teacher") {
+    if (role === "teacher" && teacherId) {
       api
-        .getStudents()
+        .getTeacherStudents(teacherId)
         .then((res) => {
           setStudents(res.students);
           if (res.students.length > 0) {
@@ -66,31 +77,64 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           }
         })
         .catch((e) => console.error("Failed to load students ", e));
+    } else if (role === "teacher" && !teacherId) {
+      console.error("teacherId is undefined!");
     }
-  }, []);
 
-  const handleAddEvent = () => {
-    const start = new Date(date);
-    const end = new Date(date);
-    const startTimeParts = startTime.split(":");
-    const endTimeParts = endTime.split(":");
-    start.setHours(parseInt(startTimeParts[0]), parseInt(startTimeParts[1]));
-    end.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]));
+    if (role === "student") {
+      console.log(userId);
+      
+      api
+        .getStudentTeachers(userId)
+        .then((res) => {
+          setTeachers(res.teachers);
+          console.log(res.teachers);
 
-    const newLesson = {
-      id: crypto.randomUUID(),
-      title: topic,
-      studentId: role === "student" ? "1" : studentId,
-      teacherId: role === "teacher" ? "2" : "1",
-      startTime: start,
-      endTime: end,
-      price: parseInt(String(price), 10),
-      status: "pending",
-    } as Lesson;
-    api.addLesson(newLesson).then(() => {
-      onClose();
-    });
-  };
+          if (res.teachers.length > 0) {
+            setSelectedTeacherId(res.teachers[0].id);
+          }
+        })
+        .catch((e) => console.error("Failed to load teachers", e));
+    }
+  }, [teacherId, role]);
+
+const handleAddEvent = async () => {
+  // Для роли "student" обязательно должен быть передан userId
+  if (role === "student" && !userId) {
+    console.error("Не передан идентификатор пользователя для роли 'student'.");
+    return;
+  }
+
+  const start = new Date(date);
+  const end = new Date(date);
+  const startTimeParts = startTime.split(":");
+  const endTimeParts = endTime.split(":");
+  start.setHours(parseInt(startTimeParts[0]), parseInt(startTimeParts[1]));
+  end.setHours(parseInt(endTimeParts[0]), parseInt(endTimeParts[1]));
+
+  const newLesson = {
+    id: crypto.randomUUID(),
+    title: topic,
+    // Для преподавателя выбирается ученик, а для ученика – используем userId
+    studentid: role === "teacher" ? studentId : userId,
+    // Для преподавателя используем teacherId, а для ученика — выбранного преподавателя
+    teacherid: role === "teacher" ? teacherId : selectedTeacherId,
+    startTime: start,
+    endTime: end,
+    price: parseInt(String(price), 10),
+    status: "pending",
+  } as Lesson;
+  try {
+    console.log("handleAddEvent: newLesson:", newLesson);
+    await api.addLesson(newLesson);
+    onClose();
+    onLessonAdded();
+    console.log("handleAddEvent: onLessonAdded called");
+  } catch (error) {
+    console.error("handleAddEvent: Failed to add lesson", error);
+  }
+};
+
 
   if (!isOpen) return null;
 
@@ -98,7 +142,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent>
         <h2>
-          Добавить занятие на{" "}
+          {role === "student" ? "Попросить занятие" : "Добавить занятие"} на{" "}
           {date.toLocaleString("default", {
             weekday: "long",
             month: "long",
@@ -110,6 +154,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           <>
             <label htmlFor="student">Ученик:</label>
             <Select
+              id="student"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
             >
@@ -121,7 +166,22 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             </Select>
           </>
         )}
-
+        {role === "student" && (
+          <>
+            <label htmlFor="teacher">Преподаватель:</label>
+            <Select
+              id="teacher"
+              value={selectedTeacherId}
+              onChange={(e) => setSelectedTeacherId(e.target.value)}
+            >
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.name}
+                </option>
+              ))}
+            </Select>
+          </>
+        )}
         <label htmlFor="topic">Тема:</label>
         <Input
           type="text"
@@ -136,7 +196,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           value={price}
           onChange={(e) => setPrice(parseInt(e.target.value, 10))}
         />
-
         <label htmlFor="startTime">Время начала:</label>
         <Input
           type="time"
@@ -155,7 +214,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         <input
           type="checkbox"
           id="isRegular"
-          value={isRegular}
+          checked={isRegular}
           onChange={() => setIsRegular(!isRegular)}
         />
         <Button onClick={handleAddEvent}>Сохранить</Button>

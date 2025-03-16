@@ -1,3 +1,4 @@
+import axios from "axios";
 import {
   GetCalendarResponse,
   GetStudentResponse,
@@ -6,13 +7,13 @@ import {
   GetTeachersResponse,
   GetTestByIdResponse,
   GetTestResponse,
+  LeaderboardEntry,
   Lesson,
   Test,
   User,
 } from "../types";
-import axios from "axios";
+
 const API_URL = "http://localhost:3001/api";
-// API заглушки (замените на реальные запросы к backend)
 
 export const api = {
   async login(login: string, password: string): Promise<User | null> {
@@ -54,6 +55,10 @@ export const api = {
     const response = await axios.get(`${API_URL}/users/${teacherId}`);
     return { teacher: response.data as any };
   },
+  async getUsers(): Promise<User[]> {
+    const response = await axios.get(`${API_URL}/users`);
+    return response.data as User[];
+  },
   async getStudents(): Promise<GetStudentsResponse> {
     const response = await axios.get(`${API_URL}/users`);
     const students = response.data.filter(
@@ -70,6 +75,14 @@ export const api = {
   ): Promise<GetStudentResponse | GetTeacherResponse> {
     const response = await axios.get(`${API_URL}/users/${userId}`);
     return { user: response.data };
+  },
+  async getTeacherStudents(teacherId: string): Promise<GetStudentsResponse> {
+    const response = await axios.get(`${API_URL}/users/${teacherId}/students`);
+    return response.data;
+  },
+  async getStudentTeachers(studentId: string): Promise<GetTeachersResponse> {
+    const response = await axios.get(`${API_URL}/users/${studentId}/teachers`);
+    return response.data;
   },
   async updateUser(userId: string, data: Partial<User>): Promise<User> {
     const formData = new FormData();
@@ -104,6 +117,7 @@ export const api = {
     role: "teacher" | "student"
   ): Promise<GetCalendarResponse> {
     const response = await axios.get(`${API_URL}/lessons/${userId}/${role}`);
+    console.log(response);
     return response.data;
   },
   async addLesson(lesson: Lesson): Promise<Lesson> {
@@ -128,6 +142,35 @@ export const api = {
   ): Promise<Test | undefined> {
     const response = await axios.patch(`${API_URL}/tests/${testId}`, {
       status,
+    });
+    return response.data;
+  },
+  async addTeacherRelation(studentId: string, teacherId: string): Promise<any> {
+    const response = await axios.post(
+      `${API_URL}/users/${studentId}/teachers`,
+      { teacherId }
+    );
+    return response.data;
+  },
+  // ... остальной код остается без изменений
+  async acceptStudentRelation(
+    teacherId: string,
+    studentId: string
+  ): Promise<any> {
+    const response = await axios.patch(
+      `${API_URL}/users/${teacherId}/students/${studentId}/accept`
+    );
+    return response.data;
+  },
+  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const response = await axios.get(`${API_URL}/tests/leaderboard`);
+    console.log(response);
+    return response.data;
+  },
+  async checkTest(testId: string, answers: string[], userId: string | null) {
+    const response = await axios.post(`${API_URL}/tests/${testId}/check`, {
+      answers,
+      userId,
     });
     return response.data;
   },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import UserCard from "../UserCard/UserCard";
 import { api } from "../../services/api";
 import { GetStudentsResponse, User } from "../../types";
@@ -20,37 +21,51 @@ const Header = styled.h2`
   margin-top: 50px;
 `;
 
+const Button = styled.button`
+  margin: 20px auto;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: "Raleway", sans-serif;
+  cursor: pointer;
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 4px;
+`;
+
 interface UserListProps {
   userRole: "student" | "teacher";
   userId: string;
 }
+
 const UserList: React.FC<UserListProps> = ({ userRole, userId }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
     const fetchUsers = async () => {
-      if (userRole === "student") {
-        const res = await api.getTeachers();
-        const studentTeachers = res.teachers.filter((teacher) => {
-          return true; // тут нужно будет добавить фильтрацию по текущему ученику
-        });
-        setUsers(studentTeachers as any);
-      } else {
-        const res = await api.getStudents();
-        const teachersStudents = res.students.filter((student) => {
-          return true; // тут нужно будет добавить фильтрацию по текущему учителю
-        });
-        setUsers(teachersStudents as any);
+      try {
+        if (userRole === "student") {
+          const res = await api.getStudentTeachers(userId);
+          setUsers(res.teachers as any);
+        } else {
+          const res = await api.getTeacherStudents(userId);
+          setUsers(res.students as any);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to load users", error);
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchUsers().catch((e) => {
-      console.error("Failed to load users", e);
-      setLoading(false);
-    });
+    fetchUsers();
   }, [userId, userRole]);
+
+  const handleViewAllTeachers = () => {
+    navigate("/teachers");
+  };
 
   return (
     <>
@@ -58,9 +73,21 @@ const UserList: React.FC<UserListProps> = ({ userRole, userId }) => {
         <div>Loading...</div>
       ) : (
         <Container>
-          <Header>Текущие ученики:</Header>
+          <Header>
+            {userRole === "teacher" ? "Ваши ученики:" : "Ваши преподаватели:"}
+          </Header>
+          {userRole === "student" && (
+            <Button onClick={handleViewAllTeachers}>
+              Посмотреть всех преподавателей
+            </Button>
+          )}
           {users.map((user) => (
-            <UserCard key={user.id} user={user} />
+            // Если роль teacher, передаём teacherId равным userId текущего преподавателя
+            <UserCard
+              key={user.id}
+              user={user}
+              teacherId={userRole === "teacher" ? userId : undefined}
+            />
           ))}
         </Container>
       )}

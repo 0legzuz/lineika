@@ -12,6 +12,7 @@ import TestPage from "./pages/TestPage";
 import TestListPage from "./pages/TestListPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import AlternativeMainPage from "./pages/AlternativeMainPage";
+import TeachersPage from "./pages/TeachersPage";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -20,9 +21,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/" element={<AlternativeMainPage />} />
         <Route path="/student" element={<StudentDashboardPage />} />
         <Route path="/teacher" element={<TeacherDashboardPage />} />
-        <Route path="/teachers" element={<TeacherListPage />} />
-        <Route path="/teachers/:id" element={<TeacherProfilePage />} />
-        <Route path="/students/:id" element={<StudentProfilePage />} />
+        <Route path="/teachers" element={<TeachersPage />} />
         <Route path="/prices" element={<PricePage />} />
         <Route path="/tests/:id" element={<TestPage />} />
         <Route path="/tests" element={<TestListPage />} />

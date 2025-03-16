@@ -7,6 +7,8 @@ import Calendar from "../components/Calendar/Calendar";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ActionButton from "../components/ui/ActionButton/ActionButton";
+import { api } from "../services/api";
+import { User } from "../types";
 
 const Header = styled.div`
   display: flex;
@@ -22,20 +24,58 @@ const StudentDashboardPage: React.FC = () => {
   const [isProfileFilled, setIsProfileFilled] = useState(false);
   const navigate = useNavigate();
 
+  // Проверка заполненности профиля при входе
   useEffect(() => {
-    const storedIsProfileFilled = localStorage.getItem("isProfileFilled");
-    if (storedIsProfileFilled) {
-      setIsProfileFilled(storedIsProfileFilled === "true");
-    }
-  }, []);
+    const checkProfileFilled = async () => {
+      if (user) {
+        try {
+          const response = await api.getUser(user.id);
+          const userData = response.user;
+          if (userData) {
+            const [surnameValue, nameValue, middlenameValue] = (
+              userData.name || ""
+            ).split(" ");
+            const fieldsFilled =
+              surnameValue &&
+              nameValue &&
+              middlenameValue &&
+              userData.birthdate &&
+              userData.phone &&
+              userData.gender &&
+              userData.email &&
+              userData.timezone;
+            setIsProfileFilled(Boolean(fieldsFilled));
+          }
+        } catch (error) {
+          console.error("Failed to fetch user data:", error);
+          setIsProfileFilled(false);
+        }
+      }
+    };
 
-  const handleProfileFilled = (isFilled: boolean) => {
-    setIsProfileFilled(isFilled);
-    localStorage.setItem("isProfileFilled", String(isFilled));
+    checkProfileFilled();
+  }, [user]);
+
+  // Обновление статуса заполненности профиля после сохранения
+  const handleSaveProfile = (updatedData: Partial<User>) => {
+    if (
+      updatedData.name &&
+      updatedData.birthdate &&
+      updatedData.phone &&
+      updatedData.gender &&
+      updatedData.email &&
+      updatedData.timezone
+    ) {
+      setIsProfileFilled(true);
+    } else {
+      setIsProfileFilled(false);
+    }
   };
+
   const handleNavigateToMain = () => {
     navigate("/");
   };
+
   return (
     <div>
       {user && (
@@ -50,8 +90,7 @@ const StudentDashboardPage: React.FC = () => {
           </Header>
           <ProfileSection
             user={user}
-            onProfileFilled={handleProfileFilled}
-            isFilled={isProfileFilled}
+            onSave={handleSaveProfile}
             userRole="student"
           />
           {isProfileFilled && (

@@ -1,13 +1,20 @@
-import React from "react";
-import "./UserCardStyles.tsx";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { User } from "../../types";
 import Colors from "../../AppStyles.tsx";
+import UserModal from "../UserModal.tsx/UserModal.tsx";
+import { api } from "../../services/api";
 
 interface UserCardProps {
-  user: User;
+  user: User & { relationStatus?: string };
+  teacherId?: string; // Передаём идентификатор преподавателя, если карточка для teacher view
 }
-const Card = styled.div`
+
+interface CardProps {
+  isCooperate?: boolean;
+}
+
+const Card = styled.div<CardProps>`
   padding: 10px;
   text-align: center;
   cursor: pointer;
@@ -23,6 +30,8 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  background-color: ${(props) =>
+    props.isCooperate ? Colors.green || "#d4edda" : Colors.white};
 `;
 
 const CardInfo = styled.div`
@@ -31,15 +40,94 @@ const CardInfo = styled.div`
   height: fit-content;
 `;
 
-const UserCard: React.FC<UserCardProps> = ({ user }) => {
+const AcceptButton = styled.button`
+  background-color: ${Colors.blue};
+  color: ${Colors.white};
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 5px;
+`;
+
+const UserCard: React.FC<UserCardProps> = ({ user, teacherId }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cachedImage, setCachedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const isImageLoading = useRef(false);
+  const [relationStatus, setRelationStatus] = useState(user.relationStatus);
+
+  const handleCardClick = () => {
+    setIsModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (user.photo && !isImageLoading.current) {
+      isImageLoading.current = true;
+      const img = new Image();
+      img.src = user.photo;
+      img.onload = () => {
+        setCachedImage(user.photo);
+        isImageLoading.current = false;
+      };
+      img.onerror = () => {
+        setCachedImage(null);
+        isImageLoading.current = false;
+      };
+    } else if (!user.photo) {
+      setCachedImage(null);
+    }
+  }, [user.photo]);
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleAccept = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // предотвращаем открытие модального окна
+    if (!teacherId) return;
+    try {
+      setLoading(true);
+      const updatedRelation = await api.acceptStudentRelation(
+        teacherId,
+        user.id
+      );
+      setRelationStatus(updatedRelation.status);
+      alert("Ученик успешно принят!");
+    } catch (error) {
+      console.error("Ошибка при подтверждении ученика", error);
+      alert("Ошибка при подтверждении ученика");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Card>
-      <img src={user.photo || "/no-photo.png"} alt={user.name} width="100" />
-      <CardInfo>
-        <h3>{user.name}</h3>
-        <p>Статус: {user.status}</p>
-      </CardInfo>
-    </Card>
+    <>
+      <Card
+        onClick={handleCardClick}
+        isCooperate={relationStatus === "cooperate"}
+      >
+        <img src={cachedImage || "/no-photo.png"} alt={user.name} width="100" />
+        <CardInfo>
+          <h3>{user.name}</h3>
+          <p>Статус: {user.status}</p>
+          {relationStatus && <p>Связь: {relationStatus}</p>}
+          {relationStatus === "pending" && teacherId && (
+            <AcceptButton onClick={handleAccept} disabled={loading}>
+              {loading ? "Принятие..." : "Принять ученика"}
+            </AcceptButton>
+          )}
+        </CardInfo>
+      </Card>
+      {isModalOpen && (
+        <UserModal
+          user={user}
+          onClose={handleCloseModal}
+          cachedImage={cachedImage}
+        />
+      )}
+    </>
   );
 };
 

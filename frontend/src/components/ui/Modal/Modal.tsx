@@ -1,11 +1,17 @@
+// src/components/ui/Modal/Modal.tsx
 import React from "react";
 import "./ModalStyles.tsx";
 import styled from "styled-components";
+import Colors from "../../../AppStyles.tsx";
+import ActionButton from "../ActionButton/ActionButton";
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  closeButton?: boolean;
 }
+
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -20,18 +26,46 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background: white;
   padding: 20px;
+  background: ${Colors.white};
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  border: 2px solid ${Colors.black};
+  -webkit-box-shadow: 3px 3px 0px 0 rgba(0, 0, 0, 1);
+  -moz-box-shadow: 3px 3px 0px 0 rgba(0, 0, 0, 1);
+  box-shadow: 3px 3px 0px 0 rgba(0, 0, 0, 1);
+  position: relative;
 `;
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+`;
+
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  children,
+  closeButton = true,
+}) => {
   if (!isOpen) return null;
 
+  const handleOverlayClick = () => {
+    onClose();
+  };
+
   return (
-    <ModalOverlay onClick={onClose}>
+    <ModalOverlay onClick={handleOverlayClick}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
+        {closeButton && (
+          <ModalHeader>
+            <ActionButton
+              textButton="Закрыть"
+              onClick={onClose}
+              variant="orange"
+            />
+          </ModalHeader>
+        )}
         {children}
       </ModalContent>
     </ModalOverlay>

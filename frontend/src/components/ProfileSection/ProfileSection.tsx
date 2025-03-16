@@ -12,8 +12,8 @@ import Input from "../ui/Input/Input";
 interface ProfileSectionProps {
   user: User;
   onSave: (data: Partial<User>) => void;
-  onProfileFilled: (isFilled: boolean) => void;
-  isFilled: boolean;
+  // onProfileFilled больше не нужен
+  // isFilled больше не нужен
   userRole: "student" | "teacher";
 }
 
@@ -148,21 +148,19 @@ const Image = styled.img`
 const ProfileSection: React.FC<ProfileSectionProps> = ({
   user,
   onSave,
-  onProfileFilled,
-  isFilled,
   userRole,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [name, setName] = useState(user.name);
-  const [surname, setSurname] = useState<string>("");
-  const [middlename, setMiddlename] = useState<string>("");
-  const [photo, setPhoto] = useState<string | null>(user.photo || null);
-  const [birthdate, setBirthdate] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [gender, setGender] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [timezone, setTimezone] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
+  const [isCollapsed, setIsCollapsed] = useState(true); // Начинаем с true, чтобы проверить данные при загрузке
+  const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [middlename, setMiddlename] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [birthdate, setBirthdate] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [email, setEmail] = useState("");
+  const [timezone, setTimezone] = useState("");
+  const [description, setDescription] = useState("");
   const [availableTimes, setAvailableTimes] = useState<string[][]>([
     [],
     [],
@@ -172,11 +170,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     [],
     [],
   ]);
-  const [fetchError, setFetchError] = useState<boolean>(false);
-  const [imageError, setImageError] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [userClass, setUserClass] = useState<string>("");
+  const [userClass, setUserClass] = useState("");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const formatDate = (isoString: string): string => {
@@ -187,12 +185,72 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     return `${day}.${month}.${year}`;
   };
 
+  // Валидация
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidPhone = (phone: string) =>
+    /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/.test(phone);
+  const isValidBirthdate = (date: string) =>
+    /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(19|20)\d{2}$/.test(date);
+
+  const validateForm = (data: {
+    surname: string;
+    name: string;
+    middlename: string;
+    birthdate: string;
+    phone: string;
+    gender: string;
+    email: string;
+    timezone: string;
+  }): { [key: string]: string } => {
+    const newErrors: { [key: string]: string } = {};
+    if (!data.name) newErrors.name = "ФИО обязательно";
+    if (!data.surname) newErrors.surname = "Фамилия обязательна";
+    if (!data.middlename) newErrors.middlename = "Отчество обязательна";
+    if (!data.birthdate) newErrors.birthdate = "Дата рождения обязательна";
+    else if (!isValidBirthdate(data.birthdate))
+      newErrors.birthdate = "Неверный формат даты, используйте дд.мм.гггг";
+    if (!data.phone) newErrors.phone = "Телефон обязателен";
+    else if (!isValidPhone(data.phone))
+      newErrors.phone =
+        "Неверный формат номера телефона, используйте +7 (999) 999-99-99";
+    if (!data.gender) newErrors.gender = "Пол обязателен";
+    if (!data.email) newErrors.email = "Почта обязательна";
+    else if (!isValidEmail(data.email))
+      newErrors.email = "Неверный формат почты";
+    if (!data.timezone) newErrors.timezone = "Часовой пояс обязателен";
+    return newErrors;
+  };
+
+  // Проверка, заполнен ли профиль
+  const isProfileFilled = (userData: any): boolean => {
+    if (!userData) return false;
+
+    const [surnameValue, nameValue, middlenameValue] = (
+      userData.name || ""
+    ).split(" ");
+    const validationData = {
+      surname: surnameValue || "",
+      name: nameValue || "",
+      middlename: middlenameValue || "",
+      birthdate: userData.birthdate ? formatDate(userData.birthdate) : "",
+      phone: userData.phone || "",
+      gender: userData.gender || "",
+      email: userData.email || "",
+      timezone: userData.timezone || "",
+    };
+
+    const validationErrors = validateForm(validationData);
+    return Object.keys(validationErrors).length === 0;
+  };
+
   useEffect(() => {
     if (user) {
       const fetchUserData = async () => {
         try {
           const response = await api.getUser(user.id);
           const userData = response.user;
+
           if (userData) {
             const [surnameValue, nameValue, middlenameValue] = (
               userData.name || ""
@@ -215,21 +273,12 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             setDescription(userData.description || "");
             setUserClass((userData as any).class || "");
             setFetchError(false);
-
-            const fieldsFilled =
-              surnameValue &&
-              nameValue &&
-              middlenameValue &&
-              userData.birthdate &&
-              userData.phone &&
-              userData.gender &&
-              userData.email &&
-              userData.timezone;
-            setIsCollapsed(Boolean(fieldsFilled));
+            setIsCollapsed(isProfileFilled(userData)); // Проверяем и устанавливаем isCollapsed
           }
         } catch (error) {
           console.error("Failed to fetch user data:", error);
           setFetchError(true);
+          setIsCollapsed(false); // Если ошибка, показываем форму
         }
       };
       fetchUserData();
@@ -249,35 +298,22 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     }
   };
 
-  const isValidEmail = (email: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const isValidPhone = (phone: string) =>
-    /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/.test(phone);
-  const isValidBirthdate = (date: string) =>
-    /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.(19|20)\d{2}$/.test(date);
-
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-    if (!name) newErrors.name = "ФИО обязательно";
-    if (!surname) newErrors.surname = "Фамилия обязательна";
-    if (!middlename) newErrors.middlename = "Отчество обязательна";
-    if (!birthdate) newErrors.birthdate = "Дата рождения обязательна";
-    else if (!isValidBirthdate(birthdate))
-      newErrors.birthdate = "Неверный формат даты, используйте дд.мм.гггг";
-    if (!phone) newErrors.phone = "Телефон обязателен";
-    else if (!isValidPhone(phone))
-      newErrors.phone =
-        "Неверный формат номера телефона, используйте +7 (999) 999-99-99";
-    if (!gender) newErrors.gender = "Пол обязателен";
-    if (!email) newErrors.email = "Почта обязательна";
-    else if (!isValidEmail(email)) newErrors.email = "Неверный формат почты";
-    if (!timezone) newErrors.timezone = "Часовой пояс обязателен";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    const validationData = {
+      surname,
+      name,
+      middlename,
+      birthdate,
+      phone,
+      gender,
+      email,
+      timezone,
+    };
+    const currentErrors = validateForm(validationData);
+    setErrors(currentErrors);
+    if (Object.keys(currentErrors).length > 0) {
+      return; // Если есть ошибки, не отправляем
+    }
 
     const transformedAvailableTimes = availableTimes.map(
       (times) => `{${times.join(",")}}`
@@ -296,14 +332,13 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     };
 
     await api.updateUser(user.id, updatedData);
-    onProfileFilled(true);
+    // onProfileFilled больше не вызываем
     setIsCollapsed(true);
-    localStorage.setItem("isProfileFilled", "true");
+    onSave(updatedData); // вызываем onSave
   };
 
   const handleEdit = () => {
     setIsCollapsed(false);
-    localStorage.setItem("isProfileFilled", "false");
   };
 
   const handleSetAvailableTimes = (dayIndex: number, times: string[]) => {
@@ -534,7 +569,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               onClick={handleSubmit}
               textButton="Сохранить"
               variant="mint"
-              disabled={isFilled}
+              // disabled больше не нужен
             />
             <ActionButton
               onClick={() => setIsCollapsed(true)}

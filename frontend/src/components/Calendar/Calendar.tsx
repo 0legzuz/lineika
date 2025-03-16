@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CalendarDay, Lesson } from "../../types";
+import { CalendarDay, Lesson, User } from "../../types";
 import { api } from "../../services/api";
 import CalendarTile from "./CalendarTile/CalendarTile";
 import "./CalendarStyles.tsx";
@@ -58,10 +58,16 @@ const YearButton = styled.div`
   cursor: pointer;
 `;
 
+interface UserCache {
+  [id: string]: User;
+}
+
 const Calendar: React.FC<CalendarProps> = ({ userId, role }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [teacherId, setTeacherId] = useState<string | undefined>(undefined);
+  const [users, setUsers] = useState<UserCache>({});
 
   const getDaysInMonth = (date: Date) => {
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -78,24 +84,63 @@ const Calendar: React.FC<CalendarProps> = ({ userId, role }) => {
     }
     return daysInMonth;
   };
-  useEffect(() => {
+
+  const refreshCalendar = () => {
     setLoading(true);
-    api
-      .getCalendar(userId, role)
-      .then((res) => {
-        setCalendarDays(res.calendarDays);
-        setLoading(false);
-      })
-      .catch((e) => {
-        console.error("Failed to load calendar data ", e);
-        setLoading(false);
+    fetchCalendarData();
+  };
+
+  const fetchCalendarData = async () => {
+    console.log(userId);
+
+    try {
+      const calendarResponse = await api.getCalendar(userId, role);
+      setCalendarDays(calendarResponse.calendarDays);
+
+      const userIds = new Set<string>();
+      calendarResponse.calendarDays.forEach((day) => {
+        day.events.forEach((event) => {
+          if (role === "student") {
+            if (event.teacherid) userIds.add(event.teacherid);
+          } else {
+            if (event.studentid) userIds.add(event.studentid);
+          }
+        });
       });
+
+      const usersData: UserCache = {};
+      for (const id of userIds) {
+        const response = await api.getUser(id);
+        if (response.user) {
+          usersData[id] = response.user;
+        }
+      }
+      setUsers(usersData);
+
+      if (role === "teacher") {
+        const userResponse = await api.getUser(userId);
+        setTeacherId(userResponse?.user?.id);
+      }
+      setLoading(false);
+    } catch (e) {
+      console.error("Failed to load calendar data or user data", e);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendarData();
   }, [userId, currentDate, role]);
 
   const getDayEvents = (date: Date): Lesson[] => {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
     return (
-      calendarDays.find((day) => day.date.getTime() === date.getTime())
-        ?.events || []
+      calendarDays.find((day) => {
+        const dayDate = new Date(day.date);
+        dayDate.setHours(0, 0, 0, 0);
+        return dayDate.getTime() === startOfDay.getTime();
+      })?.events || []
     );
   };
   const handlePrevMonth = () => {
@@ -110,6 +155,8 @@ const Calendar: React.FC<CalendarProps> = ({ userId, role }) => {
     );
   };
   const renderCalendarTiles = () => {
+    console.log(userId);
+
     const days = getDaysInMonth(currentDate);
     return days.map((date, index) =>
       date ? (
@@ -118,6 +165,10 @@ const Calendar: React.FC<CalendarProps> = ({ userId, role }) => {
           date={date}
           events={getDayEvents(date)}
           role={role}
+          onLessonAdded={refreshCalendar}
+          teacherId={teacherId}
+          users={users}
+          userId={userId}
         />
       ) : (
         <div key={index}></div>

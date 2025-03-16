@@ -1,86 +1,64 @@
 export interface User {
   id: string;
   name: string;
-  photo?: string;
-  status?: string;
-  age?: number;
-  experience?: number;
-  description?: string;
   role: "student" | "teacher" | "moderator";
-}
-
-export interface Teacher extends User {
-  experience: number;
-  description: string;
-}
-
-export interface Student extends User {
-  class: string;
+  photo: string | null;
+  description: string | null;
 }
 
 export interface Lesson {
   id: string;
   title: string;
+  start: Date;
+  end: Date;
   teacherId: string;
   studentId: string;
-  startTime: Date;
-  endTime: Date;
-  price: number;
-  status: "pending" | "paid";
-  conferenceLink?: string;
-  note?: string;
-  homework?: string;
 }
 
-export interface CalendarDay {
-  date: Date;
-  events: Lesson[];
+export interface GetCalendarResponse {
+  lessons: Lesson[];
+}
+export interface GetTeachersResponse {
+  teachers: User[];
+}
+export interface GetTeacherResponse {
+  teacher: User;
+}
+export interface GetStudentsResponse {
+  students: User[];
+}
+export interface GetStudentResponse {
+  student: User;
+}
+export interface GetTestResponse {
+  tests: Test[];
+}
+export interface GetTestByIdResponse {
+  test: Test;
 }
 export interface Test {
   id: string;
   title: string;
   topics: string[];
-  questions: Question[];
-  status?: "pending" | "approved" | "rejected";
+  questions: QuestionWithAllAnswers[]; // New questions array without correctAnswer
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  updatedAt: Date;
+  creatorId: string;
+  modifierId: string;
 }
-
-export interface Question {
+// New interface for a question with all answers
+export interface QuestionWithAllAnswers {
   id: string;
   text: string;
-  correctAnswer: string;
-  incorrectAnswers: string[];
+  answers: string[];
 }
 
-export interface AuthContextType {
-  user: User | null;
-  login: (user: User) => void;
-  logout: () => void;
+// New interface for a leaderboard entry
+export interface LeaderboardEntry {
+  userId: string;
+  name: string;
+  averagescore: number;
+  totalteststaken:number
 }
 
-// Типы для запросов/ответов API
-export interface GetTeachersResponse {
-  teachers: Teacher[];
-}
-
-export interface GetTeacherResponse {
-  teacher: Teacher;
-}
-export interface GetStudentsResponse {
-  students: Student[];
-}
-
-export interface GetStudentResponse {
-  student: Student;
-}
-
-export interface GetCalendarResponse {
-  calendarDays: CalendarDay[];
-}
-
-export interface GetTestResponse {
-  tests: Test[];
-}
-
-export interface GetTestByIdResponse {
-  test: Test;
-}
